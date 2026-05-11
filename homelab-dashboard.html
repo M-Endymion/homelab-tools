@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homelab Status Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .card { transition: all 0.2s; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen">
+
+    <div class="max-w-7xl mx-auto p-8">
+        <div class="flex justify-between items-center mb-10">
+            <div>
+                <h1 class="text-4xl font-bold text-white">Homelab Status</h1>
+                <p class="text-zinc-400">Last updated: <span id="last-updated">Just now</span></p>
+            </div>
+            <button onclick="refreshDashboard()" 
+                    class="bg-emerald-600 hover:bg-emerald-500 px-6 py-3 rounded-xl font-medium flex items-center gap-2">
+                <i class="fas fa-sync"></i> Refresh All
+            </button>
+        </div>
+
+        <!-- Overview Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            <div class="bg-zinc-900 rounded-2xl p-6 card">
+                <div class="flex justify-between">
+                    <div>
+                        <p class="text-emerald-400 text-sm">Proxmox Nodes</p>
+                        <p class="text-5xl font-semibold mt-2" id="proxmox-nodes">2</p>
+                    </div>
+                    <i class="fas fa-server text-5xl text-emerald-500 opacity-20"></i>
+                </div>
+            </div>
+            <div class="bg-zinc-900 rounded-2xl p-6 card">
+                <div class="flex justify-between">
+                    <div>
+                        <p class="text-blue-400 text-sm">Running VMs</p>
+                        <p class="text-5xl font-semibold mt-2" id="running-vms">14</p>
+                    </div>
+                    <i class="fas fa-tv text-5xl text-blue-500 opacity-20"></i>
+                </div>
+            </div>
+            <div class="bg-zinc-900 rounded-2xl p-6 card">
+                <div class="flex justify-between">
+                    <div>
+                        <p class="text-cyan-400 text-sm">Docker Containers</p>
+                        <p class="text-5xl font-semibold mt-2" id="docker-containers">28</p>
+                    </div>
+                    <i class="fas fa-cube text-5xl text-cyan-500 opacity-20"></i>
+                </div>
+            </div>
+            <div class="bg-zinc-900 rounded-2xl p-6 card">
+                <div class="flex justify-between">
+                    <div>
+                        <p class="text-purple-400 text-sm">Tailscale Devices</p>
+                        <p class="text-5xl font-semibold mt-2" id="tailscale-devices">9</p>
+                    </div>
+                    <i class="fas fa-network-wired text-5xl text-purple-500 opacity-20"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Services Grid -->
+        <h2 class="text-2xl font-semibold mb-4">Services Status</h2>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="services-grid">
+            <!-- Populated by JS in future versions -->
+            <div class="bg-zinc-900 rounded-2xl p-5 card">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-film text-3xl text-red-500"></i>
+                    <div>
+                        <p class="font-medium">Jellyfin</p>
+                        <p class="text-sm text-emerald-400">Running • 4K Ready</p>
+                    </div>
+                </div>
+            </div>
+            <!-- More cards can be added here -->
+        </div>
+
+        <div class="mt-12 text-center text-zinc-500 text-sm">
+            Built as a portfolio project • <a href="https://github.com/M-Endymion/homelab-tools" class="hover:text-white">View on GitHub</a>
+        </div>
+    </div>
+
+    <script>
+        // Simple refresh simulation
+        function refreshDashboard() {
+            const btn = document.querySelector('button');
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Refreshing...`;
+            setTimeout(() => {
+                document.getElementById('last-updated').textContent = 'Just now';
+                btn.innerHTML = `<i class="fas fa-sync"></i> Refresh All`;
+                alert("Dashboard refreshed! (In future versions this will pull real data from Proxmox, Docker, etc.)");
+            }, 1200);
+        }
+
+        // Tailwind script already loaded
+    </script>
+</body>
+</html>
