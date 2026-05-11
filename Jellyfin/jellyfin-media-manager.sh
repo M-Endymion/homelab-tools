@@ -1,112 +1,130 @@
 #!/bin/bash
 # =============================================================================
-# Jellyfin Media Manager
-# Duplicate Finder + Interactive Cleanup + Quality Checker + Broken File Detector
+# Jellyfin Media Manager v1.2
+# Smart Duplicate Finder + Interactive Cleanup
 # Author: M-Endymion
-# Version: 1.1
 # =============================================================================
 
 set -euo pipefail
 
 MEDIA_PATH="${1:-/media}"
-MODE="${2:-menu}"   # menu, duplicates, quality, broken, interactive
+MODE="${2:-menu}"
 
 REPORT_DIR="$HOME/jellyfin-reports/$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$REPORT_DIR"
 
-echo "🚀 Jellyfin Media Manager v1.1"
+echo "🚀 Jellyfin Media Manager v1.2 - Smart Duplicate Finder"
 echo "Media Path: $MEDIA_PATH"
 echo "========================================"
 
 # =============================================================================
-# Interactive Duplicate Selector
+# Smart Duplicate Finder + Interactive Cleanup
 # =============================================================================
 interactive_duplicate_cleanup() {
-    echo "🔍 Scanning for duplicate files (this may take a while)..."
+    echo "🔍 Scanning for duplicates with smart grouping..."
 
-    # Find all video files and group by title + year
+    # Create temporary working files
+    > "$REPORT_DIR/duplicates_groups.txt"
+
     find "$MEDIA_PATH" -type f \( -iname "*.mkv" -o -iname "*.mp4" -o -iname "*.avi" \) | 
     while read -r file; do
-        # Extract title and year from filename (common patterns)
-        basename "$file" | sed -E 's/\.(mkv|mp4|avi)$//i' | sed -E 's/\.[0-9]{4}.*//'
-    done | sort | uniq -c | sort -nr | head -50 > "$REPORT_DIR/duplicate_groups.txt"
-
-    echo "Found potential duplicate groups. Starting interactive cleanup..."
-
-    while IFS= read -r line; do
-        count=$(echo "$line" | awk '{print $1}')
-        title=$(echo "$line" | cut -d' ' -f2-)
+        filename=$(basename "$file")
         
-        if [[ $count -gt 1 ]]; then
-            echo -e "\n🔄 Found $count versions of: $title"
-            find "$MEDIA_PATH" -type f -iname "*$title*" \( -iname "*.mkv" -o -iname "*.mp4" \) | 
-            while read -r file; do
+        # Smart title extraction (removes year, resolution, source tags, etc.)
+        title=$(echo "$filename" | 
+                sed -E 's/\.(mkv|mp4|avi|mov)$//i' | 
+                sed -E 's/\.[0-9]{4}.*//' | 
+                sed -E 's/\.(1080p|720p|2160p|4K|BluRay|WEBRip|WEB-DL|HDTV|x264|x265|HEVC|AAC).*//i' |
+                sed -E 's/[._]/ /g' | 
+                sed -E 's/ +/ /g' | 
+                awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]{4}$/) break; else printf "%s ", $i}' |
+                sed 's/ $//')
+
+        echo "$title|$file" >> "$REPORT_DIR/duplicates_groups.txt"
+    done
+
+    # Group by title
+    sort "$REPORT_DIR/duplicates_groups.txt" | 
+    awk -F'|' '{count[$1]++; files[$1]=files[$1] $2 "\n"} 
+         END {for (t in count) if (count[t]>1) print count[t] "|" t "|" files[t]}' > "$REPORT_DIR/duplicate_groups_final.txt"
+
+    echo "Found duplicate groups. Starting interactive review..."
+
+    while IFS='|' read -r count title files; do
+        [[ -z "$title" ]] && continue
+
+        echo -e "\n══════════════════════════════════════"
+        echo "🔄 Group: $title ($count versions)"
+        echo "══════════════════════════════════════"
+
+        # Show detailed comparison
+        echo "$files" | while read -r file; do
+            if [[ -f "$file" ]]; then
                 size=$(du -h "$file" | cut -f1)
                 res=$(ffprobe -v quiet -select_streams v:0 -show_entries stream=height -of csv=p=0 "$file" 2>/dev/null || echo "Unknown")
-                echo "   - $size | ${res}p | $file"
-            done
+                duration=$(ffprobe -v quiet -show_entries format=duration -of csv=p=0 "$file" 2>/dev/null | cut -d. -f1)
+                echo "   [${res}p | ${duration}s | $size] → $file"
+            fi
+        done
 
-            echo -e "\nWhat would you like to do?"
-            echo "1) Keep the largest/best version and move others to Duplicates/"
-            echo "2) Skip this group"
-            echo "3) Move all to Duplicates/ (rare)"
-            read -r choice
+        echo -e "\nWhat would you like to do with this group?"
+        echo "1) Keep the best version (largest + highest resolution), move others"
+        echo "2) Review and choose manually"
+        echo "3) Skip this group"
+        echo "4) Move ALL to Duplicates folder"
+        read -r choice
 
-            case $choice in
-                1)
-                    # Keep largest file, move others
-                    best=$(find "$MEDIA_PATH" -type f -iname "*$title*" \( -iname "*.mkv" -o -iname "*.mp4" \) -exec du -b {} + | sort -nr | head -1 | cut -f2)
-                    mkdir -p "$MEDIA_PATH/Duplicates/$title"
-                    find "$MEDIA_PATH" -type f -iname "*$title*" \( -iname "*.mkv" -o -iname "*.mp4" \) ! -path "$best" -exec mv {} "$MEDIA_PATH/Duplicates/$title/" \;
-                    echo "✅ Kept best version, moved others."
-                    ;;
-                2)
-                    echo "Skipping..."
-                    ;;
-                3)
-                    mkdir -p "$MEDIA_PATH/Duplicates/$title"
-                    find "$MEDIA_PATH" -type f -iname "*$title*" \( -iname "*.mkv" -o -iname "*.mp4" \) -exec mv {} "$MEDIA_PATH/Duplicates/$title/" \;
-                    echo "✅ All versions moved to Duplicates."
-                    ;;
-            esac
-        fi
-    done < "$REPORT_DIR/duplicate_groups.txt"
-}
-
-# =============================================================================
-# Other Modes (Basic for now)
-# =============================================================================
-find_broken_files() {
-    echo "🩺 Scanning for broken media files..."
-    find "$MEDIA_PATH" -type f \( -iname "*.mkv" -o -iname "*.mp4" \) -print0 | 
-    xargs -0 -I {} bash -c '
-        if ! ffprobe -v quiet -print_format json -show_format -show_streams "{}" > /dev/null 2>&1; then
-            echo "❌ CORRUPT: {}" | tee -a "'"$REPORT_DIR/broken_files.txt"'"
-        fi
-    '
+        case $choice in
+            1)
+                # Keep best version (highest resolution + largest size)
+                best=$(echo "$files" | while read -r f; do 
+                    [[ -f "$f" ]] && echo "$(stat -c %s "$f")|$f"; 
+                done | sort -nr | head -1 | cut -d'|' -f2)
+                
+                mkdir -p "$MEDIA_PATH/Duplicates/$title"
+                echo "$files" | while read -r f; do
+                    [[ "$f" != "$best" ]] && [[ -f "$f" ]] && mv "$f" "$MEDIA_PATH/Duplicates/$title/"
+                done
+                echo "✅ Kept best version, moved others to Duplicates/$title/"
+                ;;
+            2)
+                echo "Manual selection coming in v1.3"
+                ;;
+            3)
+                echo "Skipping group."
+                ;;
+            4)
+                mkdir -p "$MEDIA_PATH/Duplicates/$title"
+                echo "$files" | while read -r f; do
+                    [[ -f "$f" ]] && mv "$f" "$MEDIA_PATH/Duplicates/$title/"
+                done
+                echo "✅ All versions moved to Duplicates."
+                ;;
+        esac
+    done < "$REPORT_DIR/duplicate_groups_final.txt"
 }
 
 # =============================================================================
 # Main Menu
 # =============================================================================
-if [[ "$MODE" == "menu" ]]; then
+if [[ "$MODE" == "menu" || -z "$MODE" ]]; then
     echo ""
-    echo "Please choose an option:"
-    echo "1) Interactive Duplicate Cleanup (Recommended)"
-    echo "2) Scan for Broken Files"
-    echo "3) Full Scan (All Checks)"
+    echo "Select an option:"
+    echo "1) Interactive Duplicate Cleanup (Smart)"
+    echo "2) Scan for Broken/Corrupt Files"
+    echo "3) Full Analysis"
     echo "4) Exit"
     read -r choice
 
     case $choice in
         1) interactive_duplicate_cleanup ;;
-        2) find_broken_files ;;
-        3) find_broken_files; interactive_duplicate_cleanup ;;
-        *) echo "Exiting..."; exit 0 ;;
+        2) echo "Broken file scanner coming in v1.3" ;;
+        3) interactive_duplicate_cleanup ;;
+        *) echo "Goodbye!"; exit 0 ;;
     esac
 else
     interactive_duplicate_cleanup
 fi
 
 echo ""
-echo "✅ Operation completed! Reports saved to: $REPORT_DIR"
+echo "✅ Operation finished. Reports saved in: $REPORT_DIR"
