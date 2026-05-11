@@ -1,14 +1,12 @@
 # Jellyfin Media Manager
 
-A practical toolkit for maintaining clean, high-quality Jellyfin media libraries.
+A powerful, safe toolkit for maintaining clean, high-quality Jellyfin media libraries.
 
 ---
 
 ### Main Script
 
-**`jellyfin-media-manager.sh`**
-
-The all-in-one tool for Jellyfin library maintenance.
+**`jellyfin-media-manager.sh`** (v1.7)
 
 ---
 
@@ -16,27 +14,27 @@ The all-in-one tool for Jellyfin library maintenance.
 
 | Feature                        | Description                                                                 | Status |
 |--------------------------------|-----------------------------------------------------------------------------|--------|
-| Interactive Duplicate Finder   | Smart grouping by title, interactive safe cleanup (moves to `Duplicates/`) | Complete |
-| Broken File Scanner            | Detects corrupt, incomplete, or unplayable files using `ffprobe`           | Complete |
-| Quality Analyzer               | Identifies low-quality files in high-res folders and old codecs            | Complete |
-| Metadata Report                | Connects to Jellyfin API to show missing posters, summaries, etc.          | Complete |
+| **Interactive Duplicate Finder** | Smart grouping by title, side-by-side comparison, safe move to `Duplicates/` folder | Complete |
+| **Broken File Scanner**        | Detects corrupt, incomplete, or unplayable files using `ffprobe`           | Complete |
+| **Quality Analyzer**           | Identifies low-quality files (old codecs, low-res in high-res folders, etc.) | Complete |
+| ***arr Integration**           | Triggers search commands in Radarr (and soon Sonarr) for broken/low-quality items | Complete |
+| **Metadata Report**            | Basic Jellyfin API report (missing posters, summaries, etc.)                | Basic |
 
 ---
 
 ### Usage
 
 ```bash
-# Make executable (first time only)
 chmod +x jellyfin-media-manager.sh
 
-# Recommended: Interactive menu
+# Recommended - Interactive Menu
 ./jellyfin-media-manager.sh /path/to/your/media
 
 # Direct modes:
 ./jellyfin-media-manager.sh /path/to/media duplicates    # Duplicate cleanup
-./jellyfin-media-manager.sh /path/to/media broken        # Find broken files
-./jellyfin-media-manager.sh /path/to/media quality       # Quality check
-./jellyfin-media-manager.sh /path/to/media metadata      # Jellyfin API report
+./jellyfin-media-manager.sh /path/to/media broken        # Broken file scan + *arr search
+./jellyfin-media-manager.sh /path/to/media quality       # Quality analysis
+./jellyfin-media-manager.sh /path/to/media full          # Full analysis
 ```
 
 ---
@@ -47,6 +45,9 @@ chmod +x jellyfin-media-manager.sh
 - Broken File Scanner — Uses ffprobe to detect corrupt, incomplete, or unplayable files
 - Quality Analyzer — Identifies low-quality files in high-resolution libraries
 - Metadata Report — Connects to Jellyfin API to show missing posters, summaries, etc.
+
+### Key Highlight: *arr Integration
+When the script finds broken or low-quality files, it will ask if you want to trigger a search in Radarr right away. This allows you to quickly replace bad files using your existing *arr setup without manual searching.
 
 All operations are non-destructive by default.
 
