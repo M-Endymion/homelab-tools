@@ -4,13 +4,13 @@
 const CONFIG = {
     // ==================== Proxmox ====================
     proxmox: [
-        {
-            name: "pve-node1",
-            url: "https://192.168.1.10:8006",      // Change to your Proxmox IP
-            username: "root@pam",
-            password: "YOUR_PROXMOX_PASSWORD_HERE", // Recommended: Use API Token instead
-            // token: "root@pam!tokenname=xxxxxxxxxxxxxxxx"   // Better security option
-        }
+            {
+                name: "pve1",
+                url: "https://192.168.1.10:8006",
+                // Use either password OR token (recommended = token)
+                token: "root@pam!XXXXXXXXXXXXXXXXXXXXXX"   // Full token string
+                // password: "yourpassword"   // Only use if not using token
+            }
         // Add more Proxmox nodes here if you have them
     ],
 
