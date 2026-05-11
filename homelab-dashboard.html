@@ -6,14 +6,16 @@
     <title>Homelab Status • Live</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="config.js"></script>
     <style>
         body { font-family: 'Inter', system-ui, sans-serif; }
         .card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
         .status-dot { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     </style>
 </head>
-<body class="bg-zinc-950 text-zinc-100">
+<body class="bg-zinc-950 text-zinc-100 min-h-screen">
 
 <div class="max-w-7xl mx-auto p-8">
     <div class="flex justify-between items-baseline mb-10">
@@ -24,96 +26,92 @@
                     <span class="status-dot absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                 </span>
-                All systems nominal • Last updated <span id="last-updated" class="font-mono">just now</span>
+                All systems nominal • Last updated <span id="last-updated">just now</span>
             </p>
         </div>
         <button onclick="refreshAll()" 
-                class="bg-white text-zinc-900 px-6 py-3 rounded-2xl font-semibold flex items-center gap-2 hover:bg-emerald-400 hover:text-white transition-colors">
-            <i class="fas fa-sync"></i>
-            <span>Refresh All</span>
+                class="bg-emerald-600 hover:bg-emerald-500 px-6 py-3 rounded-2xl font-medium flex items-center gap-2">
+            <i class="fas fa-sync"></i> Refresh All
         </button>
     </div>
 
-    <!-- Proxmox -->
-    <div class="mb-10">
-        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2"><i class="fas fa-server"></i> Proxmox Nodes</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="proxmox-grid">
-            <!-- Populated by JS -->
-        </div>
+    <!-- Proxmox Nodes -->
+    <div class="mb-12">
+        <h2 class="text-2xl font-semibold mb-6 flex items-center gap-3"><i class="fas fa-server"></i> Proxmox Nodes</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="proxmox-grid"></div>
     </div>
 
-    <!-- Docker -->
-    <div class="mb-10">
-        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2"><i class="fab fa-docker"></i> Docker Containers</h2>
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="docker-grid">
-            <!-- Populated by JS -->
-        </div>
+    <!-- Docker Hosts -->
+    <div class="mb-12">
+        <h2 class="text-2xl font-semibold mb-6 flex items-center gap-3"><i class="fab fa-docker"></i> Docker Hosts</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="docker-grid"></div>
     </div>
 
-    <!-- Services -->
+    <!-- Key Services -->
     <div>
-        <h2 class="text-xl font-semibold mb-4">Key Services</h2>
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6" id="services-grid">
-            <!-- Populated by JS -->
-        </div>
+        <h2 class="text-2xl font-semibold mb-6">Key Services</h2>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="services-grid"></div>
     </div>
 
     <div class="mt-16 text-center text-zinc-500 text-sm">
-        Homelab Status Dashboard • Built for portfolio • 
-        <a href="https://github.com/M-Endymion/homelab-tools" class="hover:text-white">View on GitHub</a>
+        Homelab Status Dashboard • <a href="https://github.com/M-Endymion/homelab-tools" class="hover:text-white">View on GitHub</a>
     </div>
 </div>
 
 <script>
-    // ==================== CONFIGURATION ====================
-    // Replace these with your real endpoints when ready
-    const CONFIG = {
-        proxmox: { url: "https://your-proxmox:8006", user: "", password: "" },
-        docker: { url: "http://localhost:2375" },   // Enable Docker HTTP API first
-        tailscale: { enabled: true }
-    };
+    async function refreshAll() {
+        const btn = document.querySelector('button');
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Refreshing...`;
 
-    // ==================== MOCK DATA (for immediate demo) ====================
+        // TODO: Replace with real API calls later
+        await loadMockData();
+
+        document.getElementById('last-updated').textContent = 'just now';
+        btn.innerHTML = `<i class="fas fa-sync"></i> Refresh All`;
+    }
+
     function loadMockData() {
         // Proxmox
         document.getElementById('proxmox-grid').innerHTML = `
-            <div class="bg-zinc-900 rounded-3xl p-6 card">
-                <div class="flex justify-between"><span class="font-medium">pve-node1</span><span class="text-emerald-400">Online</span></div>
-                <div class="mt-4 text-4xl font-semibold">87% CPU</div>
-                <div class="text-zinc-400">42 VMs • 128 GB RAM</div>
-            </div>
-            <div class="bg-zinc-900 rounded-3xl p-6 card">
-                <div class="flex justify-between"><span class="font-medium">pve-node2</span><span class="text-emerald-400">Online</span></div>
-                <div class="mt-4 text-4xl font-semibold">64% CPU</div>
-                <div class="text-zinc-400">31 VMs • 96 GB RAM</div>
+            <div class="bg-zinc-900 rounded-3xl p-8 card">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="font-semibold text-lg">pve-node1</p>
+                        <p class="text-emerald-400">Online</p>
+                    </div>
+                    <i class="fas fa-server text-5xl text-emerald-500 opacity-20"></i>
+                </div>
+                <div class="mt-6 grid grid-cols-2 gap-4 text-sm">
+                    <div>CPU: <span class="font-mono">42%</span></div>
+                    <div>RAM: <span class="font-mono">87/128 GB</span></div>
+                    <div>VMs: <span class="font-mono">42</span></div>
+                    <div>Uptime: <span class="font-mono">47d</span></div>
+                </div>
             </div>
         `;
 
         // Docker
         document.getElementById('docker-grid').innerHTML = `
+            <div class="bg-zinc-900 rounded-3xl p-8 card">
+                <div class="flex justify-between">
+                    <div class="font-medium">Main Docker Host</div>
+                    <span class="text-emerald-400">24 Running</span>
+                </div>
+                <div class="mt-4 text-5xl font-semibold">28 Total</div>
+            </div>
+        `;
+
+        // Services (expand as needed)
+        document.getElementById('services-grid').innerHTML = `
             <div class="bg-zinc-900 rounded-3xl p-6 card flex items-center gap-4">
                 <i class="fab fa-docker text-4xl text-blue-500"></i>
                 <div><div class="font-medium">Jellyfin</div><div class="text-emerald-400 text-sm">Running</div></div>
             </div>
-            <!-- Add more containers as needed -->
+            <!-- Add more service cards here -->
         `;
-
-        // Update timestamp
-        document.getElementById('last-updated').textContent = "just now";
     }
 
-    // ==================== REFRESH FUNCTION ====================
-    function refreshAll() {
-        const btn = document.querySelector('button');
-        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Refreshing...`;
-        
-        setTimeout(() => {
-            loadMockData();
-            btn.innerHTML = `<i class="fas fa-sync"></i> Refresh All`;
-        }, 1400);
-    }
-
-    // Load initial data
+    // Initial load
     window.onload = loadMockData;
 </script>
 </body>
