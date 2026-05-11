@@ -1,31 +1,42 @@
-# Jellyfin Tools
+# Jellyfin Media Manager
 
-This folder contains tools for managing and maintaining **Jellyfin** media libraries.
+A practical toolkit for maintaining clean, high-quality Jellyfin media libraries.
 
 ---
 
-### Scripts
+### Main Script
 
-| Script Name                    | Description                                                                 | Status |
+**`jellyfin-media-manager.sh`**
+
+The all-in-one tool for Jellyfin library maintenance.
+
+---
+
+### Features
+
+| Feature                        | Description                                                                 | Status |
 |--------------------------------|-----------------------------------------------------------------------------|--------|
-| `jellyfin-media-manager.sh`    | Main tool: Duplicate finder, broken file scanner, quality analyzer, and metadata report | Active |
+| Interactive Duplicate Finder   | Smart grouping by title, interactive safe cleanup (moves to `Duplicates/`) | Complete |
+| Broken File Scanner            | Detects corrupt, incomplete, or unplayable files using `ffprobe`           | Complete |
+| Quality Analyzer               | Identifies low-quality files in high-res folders and old codecs            | Complete |
+| Metadata Report                | Connects to Jellyfin API to show missing posters, summaries, etc.          | Complete |
 
 ---
 
 ### Usage
 
 ```bash
-cd scripts/Jellyfin
+# Make executable (first time only)
 chmod +x jellyfin-media-manager.sh
 
-# Interactive menu (recommended)
+# Recommended: Interactive menu
 ./jellyfin-media-manager.sh /path/to/your/media
 
 # Direct modes:
-./jellyfin-media-manager.sh /path/to/media duplicates     # Smart duplicate finder
-./jellyfin-media-manager.sh /path/to/media broken         # Find corrupt files
-./jellyfin-media-manager.sh /path/to/media quality        # Quality analysis
-./jellyfin-media-manager.sh /path/to/media metadata       # Jellyfin API metadata report
+./jellyfin-media-manager.sh /path/to/media duplicates    # Duplicate cleanup
+./jellyfin-media-manager.sh /path/to/media broken        # Find broken files
+./jellyfin-media-manager.sh /path/to/media quality       # Quality check
+./jellyfin-media-manager.sh /path/to/media metadata      # Jellyfin API report
 ```
 
 ---
@@ -44,19 +55,29 @@ All operations are non-destructive by default.
 ### Requirements
 
 - Linux server (Ubuntu/Debian recommended)
-- ffprobe (from ffmpeg package)
-- Jellyfin server running (for metadata report)
+- ```ffmpeg``` (for ```ffprobe```)
+- Jellyfin server URL + API key (for metadata report)
 - Read/write access to your media folder
 
 ---
 
-### Recommended Workflow
+### Example Workflow
 
-1. Run a full scan: ./jellyfin-media-manager.sh /media full
-2. Review the generated reports in ~/jellyfin-reports/
-3. Use Interactive Duplicate Cleanup to clean up versions safely
-4. Use Metadata Report to identify items needing attention in Jellyfin
+1. Run a full analysis:
+   ```./jellyfin-media-manager.sh /media full```
+2. Review reports in ```~/jellyfin-reports/```
+3. Use Interactive Duplicate Cleanup to safely organize multiple versions
+4. Use Broken File Scanner to find corrupt files
+5. Run Metadata Report to see what needs attention in Jellyfin
 
+---
+
+### Safety First
+
+- No files are ever deleted automatically
+- Duplicates are moved to a Duplicates/ folder (easy to recover)
+- All operations are logged
+- You remain in full control
 ___
 
 ### Future Enhancements (Planned)
@@ -68,6 +89,6 @@ ___
 
 ---
 
-***Note:*** Always review files before deleting anything from the Duplicates/ folder. These tools are designed to help you maintain a clean library safely.
+***Note:*** Always review files before deleting anything from the Duplicates/ folder. This tool was built to solve real-world Jellyfin library management problems safely and efficiently.
 
 ---
