@@ -10,7 +10,7 @@
     <style>
         body { font-family: 'Inter', system-ui, sans-serif; }
         .card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+        .card:hover { transform: translateY(-4px); }
         .status-dot { animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     </style>
@@ -26,11 +26,10 @@
                     <span class="status-dot absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                 </span>
-                All systems nominal • Last updated <span id="last-updated">just now</span>
+                Live • Last updated <span id="last-updated">just now</span>
             </p>
         </div>
-        <button onclick="refreshAll()" 
-                class="bg-emerald-600 hover:bg-emerald-500 px-6 py-3 rounded-2xl font-medium flex items-center gap-2">
+        <button onclick="refreshAll()" class="bg-emerald-600 hover:bg-emerald-500 px-6 py-3 rounded-2xl font-medium flex items-center gap-2">
             <i class="fas fa-sync"></i> Refresh All
         </button>
     </div>
@@ -41,78 +40,79 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="proxmox-grid"></div>
     </div>
 
-    <!-- Docker Hosts -->
-    <div class="mb-12">
-        <h2 class="text-2xl font-semibold mb-6 flex items-center gap-3"><i class="fab fa-docker"></i> Docker Hosts</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="docker-grid"></div>
-    </div>
-
-    <!-- Key Services -->
-    <div>
-        <h2 class="text-2xl font-semibold mb-6">Key Services</h2>
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="services-grid"></div>
-    </div>
-
-    <div class="mt-16 text-center text-zinc-500 text-sm">
+    <div class="text-center text-zinc-500 text-sm mt-16">
         Homelab Status Dashboard • <a href="https://github.com/M-Endymion/homelab-tools" class="hover:text-white">View on GitHub</a>
     </div>
 </div>
 
 <script>
+    async function proxmoxLogin(node) {
+        const response = await fetch(`${node.url}/api2/json/access/ticket`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                username: node.username,
+                password: node.password
+            })
+        });
+        const data = await response.json();
+        return data.data.ticket;
+    }
+
+    async function fetchProxmoxNodes() {
+        const grid = document.getElementById('proxmox-grid');
+        grid.innerHTML = '';
+
+        for (const node of CONFIG.proxmox) {
+            try {
+                const ticket = await proxmoxLogin(node);
+                const headers = { 'Cookie': `PVEAuthCookie=${ticket}` };
+
+                // Get node status
+                const statusRes = await fetch(`${node.url}/api2/json/nodes`, { headers });
+                const statusData = await statusRes.json();
+
+                const html = `
+                    <div class="bg-zinc-900 rounded-3xl p-8 card">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-semibold text-lg">${node.name}</p>
+                                <p class="text-emerald-400">Online</p>
+                            </div>
+                            <i class="fas fa-server text-5xl text-emerald-500 opacity-20"></i>
+                        </div>
+                        <div class="mt-8 space-y-3 text-sm">
+                            ${statusData.data.map(n => `
+                                <div class="flex justify-between">
+                                    <span>${n.node}</span>
+                                    <span class="font-mono">${n.cpu.toFixed(0)}% CPU • ${Math.round(n.mem / 1024 / 1024 / 1024)}/${Math.round(n.maxmem / 1024 / 1024 / 1024)} GB</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                grid.innerHTML += html;
+            } catch (e) {
+                grid.innerHTML += `<div class="bg-red-900/30 p-6 rounded-3xl">Error connecting to ${node.name}</div>`;
+            }
+        }
+    }
+
     async function refreshAll() {
         const btn = document.querySelector('button');
         btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Refreshing...`;
-
-        // TODO: Replace with real API calls later
-        await loadMockData();
-
+        
+        await fetchProxmoxNodes();
+        
         document.getElementById('last-updated').textContent = 'just now';
         btn.innerHTML = `<i class="fas fa-sync"></i> Refresh All`;
     }
 
-    function loadMockData() {
-        // Proxmox
-        document.getElementById('proxmox-grid').innerHTML = `
-            <div class="bg-zinc-900 rounded-3xl p-8 card">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="font-semibold text-lg">pve-node1</p>
-                        <p class="text-emerald-400">Online</p>
-                    </div>
-                    <i class="fas fa-server text-5xl text-emerald-500 opacity-20"></i>
-                </div>
-                <div class="mt-6 grid grid-cols-2 gap-4 text-sm">
-                    <div>CPU: <span class="font-mono">42%</span></div>
-                    <div>RAM: <span class="font-mono">87/128 GB</span></div>
-                    <div>VMs: <span class="font-mono">42</span></div>
-                    <div>Uptime: <span class="font-mono">47d</span></div>
-                </div>
-            </div>
-        `;
-
-        // Docker
-        document.getElementById('docker-grid').innerHTML = `
-            <div class="bg-zinc-900 rounded-3xl p-8 card">
-                <div class="flex justify-between">
-                    <div class="font-medium">Main Docker Host</div>
-                    <span class="text-emerald-400">24 Running</span>
-                </div>
-                <div class="mt-4 text-5xl font-semibold">28 Total</div>
-            </div>
-        `;
-
-        // Services (expand as needed)
-        document.getElementById('services-grid').innerHTML = `
-            <div class="bg-zinc-900 rounded-3xl p-6 card flex items-center gap-4">
-                <i class="fab fa-docker text-4xl text-blue-500"></i>
-                <div><div class="font-medium">Jellyfin</div><div class="text-emerald-400 text-sm">Running</div></div>
-            </div>
-            <!-- Add more service cards here -->
-        `;
-    }
+    // Auto refresh every 30 seconds
+    setInterval(refreshAll, CONFIG.refreshInterval || 30000);
 
     // Initial load
-    window.onload = loadMockData;
+    window.onload = refreshAll;
 </script>
 </body>
 </html>
