@@ -59,44 +59,72 @@
         return data.data.ticket;
     }
 
-    async function fetchProxmoxNodes() {
-        const grid = document.getElementById('proxmox-grid');
-        grid.innerHTML = '';
+async function fetchProxmoxNodes() {
+    const grid = document.getElementById('proxmox-grid');
+    grid.innerHTML = '<p class="text-zinc-400">Connecting to Proxmox...</p>';
 
-        for (const node of CONFIG.proxmox) {
-            try {
-                const ticket = await proxmoxLogin(node);
-                const headers = { 'Cookie': `PVEAuthCookie=${ticket}` };
+    for (const node of CONFIG.proxmox) {
+        try {
+            let headers = {};
 
-                // Get node status
-                const statusRes = await fetch(`${node.url}/api2/json/nodes`, { headers });
-                const statusData = await statusRes.json();
+            if (node.token) {
+                // API Token authentication
+                headers = {
+                    'Authorization': `PVEAPIToken=${node.token}`
+                };
+            } else if (node.username && node.password) {
+                // Fallback to ticket login
+                const ticketRes = await fetch(`${node.url}/api2/json/access/ticket`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        username: node.username,
+                        password: node.password
+                    })
+                });
+                const ticketData = await ticketRes.json();
+                headers = { 'Cookie': `PVEAuthCookie=${ticketData.data.ticket}` };
+            }
 
-                const html = `
+            const statusRes = await fetch(`${node.url}/api2/json/nodes`, { headers });
+            if (!statusRes.ok) throw new Error('Failed to fetch nodes');
+
+            const data = await statusRes.json();
+
+            let html = '';
+            data.data.forEach(n => {
+                html += `
                     <div class="bg-zinc-900 rounded-3xl p-8 card">
                         <div class="flex justify-between items-start">
                             <div>
-                                <p class="font-semibold text-lg">${node.name}</p>
+                                <p class="font-semibold text-lg">${n.node}</p>
                                 <p class="text-emerald-400">Online</p>
                             </div>
                             <i class="fas fa-server text-5xl text-emerald-500 opacity-20"></i>
                         </div>
-                        <div class="mt-8 space-y-3 text-sm">
-                            ${statusData.data.map(n => `
-                                <div class="flex justify-between">
-                                    <span>${n.node}</span>
-                                    <span class="font-mono">${n.cpu.toFixed(0)}% CPU • ${Math.round(n.mem / 1024 / 1024 / 1024)}/${Math.round(n.maxmem / 1024 / 1024 / 1024)} GB</span>
-                                </div>
-                            `).join('')}
+                        <div class="mt-8 grid grid-cols-2 gap-4 text-sm">
+                            <div>CPU: <span class="font-mono">${(n.cpu*100).toFixed(0)}%</span></div>
+                            <div>RAM: <span class="font-mono">${Math.round(n.mem/1024/1024/1024)}/${Math.round(n.maxmem/1024/1024/1024)} GB</span></div>
+                            <div>VMs: <span class="font-mono">${n.vms}</span></div>
+                            <div>Uptime: <span class="font-mono">${Math.round(n.uptime/86400)}d</span></div>
                         </div>
                     </div>
                 `;
-                grid.innerHTML += html;
-            } catch (e) {
-                grid.innerHTML += `<div class="bg-red-900/30 p-6 rounded-3xl">Error connecting to ${node.name}</div>`;
-            }
+            });
+
+            grid.innerHTML = html;
+
+        } catch (err) {
+            console.error(err);
+            grid.innerHTML += `
+                <div class="bg-red-900/30 p-8 rounded-3xl">
+                    <p class="text-red-400">Failed to connect to ${node.name}</p>
+                    <p class="text-sm text-zinc-400 mt-2">${err.message}</p>
+                </div>
+            `;
         }
     }
+}
 
     async function refreshAll() {
         const btn = document.querySelector('button');
