@@ -1,3 +1,8 @@
+<div align="center">
+  <img src="https://raw.githubusercontent.com/M-Endymion/homelab-tools/main/thumbnail-homelab.png" alt="Homelab Tools Banner" />
+</div>
+
+<br>
 # Homelab Tools
 
 A collection of practical scripts and tools for self-hosted services, media servers, and home infrastructure.
