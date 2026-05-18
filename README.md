@@ -6,7 +6,7 @@
 
 # Homelab Tools
 
-**Practical scripts for self-hosted services, media servers, and quick server deployments**
+**Practical scripts for self-hosted services and media servers. These tools come from real homelab use and demonstrate scripting skills that apply to enterprise automation as well.**
 
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
@@ -85,7 +85,7 @@ ___
 ### About the Author
 **Jason Ray (M-Endymion)**
 
-IT Professional specializing in MECM/SCCM, automation, and hybrid endpoint management.
+Focused on MECM/SCCM, PowerShell, automation and cross-platform endpoint management.
 
 This repository showcases my practical scripting skills for self-hosted infrastructure and media servers — skills that translate directly into enterprise automation and DevOps work.
 
